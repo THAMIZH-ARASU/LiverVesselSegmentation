@@ -51,12 +51,14 @@ class DataPreprocessor:
         
     def get_dataset_handler(self, dataset_path: str, dataset_type: str) -> DatasetHandler:
         """
-        Factory for vessel dataset handlers (MSD or 3DIRCADB).
+        Factory for vessel dataset handlers (MSD, 3DIRCADB, or LiVS).
         """
         if dataset_type == "hepatic_vessel":
             return HepaticVesselHandler(dataset_path)
         elif dataset_type == "dircadb_vessel":
             return DircadbVesselHandler(dataset_path)
+        elif dataset_type == "livs":
+            return LiVSHandler(dataset_path)
         else:
             raise ValueError(f"Unknown dataset type: {dataset_type}")
     

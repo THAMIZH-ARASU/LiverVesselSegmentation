@@ -52,8 +52,8 @@ def main():
     parser.add_argument("--dataset_path", type=str, required=True,
                        help="Path to dataset directory")
     parser.add_argument("--dataset_type", type=str, required=True,
-                       choices=["hepatic_vessel", "dircadb_vessel"],
-                       help="Type of dataset (hepatic_vessel for MSD; dircadb_vessel for 3DIRCADB)")
+                       choices=["hepatic_vessel", "dircadb_vessel", "livs"],
+                       help="Type of dataset (hepatic_vessel for MSD; dircadb_vessel for 3DIRCADB; livs for LiVS)")
     parser.add_argument("--output_dir", type=str, required=True,
                        help="Output directory for processed data")
     parser.add_argument("--config", type=str, default=None,
@@ -98,3 +98,6 @@ if __name__ == "__main__":
 #
 # 3DIRCADB dataset
 # python3 run_data_preprocessing.py --dataset_path /PATH/3Dircadb1 --dataset_type dircadb_vessel --output_dir data_preprocessed
+#
+# LiVS dataset
+# python3 run_data_preprocessing.py --dataset_path /run/media/Thamizh/THAMIZH/LiVS --dataset_type livs --output_dir data_preprocessed

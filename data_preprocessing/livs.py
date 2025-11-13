@@ -1,11 +1,11 @@
 """
-lits_handler.py
+livs_handler.py
 
-Handler for the LiTS (Liver Tumor Segmentation) dataset format. Extracts subject lists and validates dataset structure for preprocessing pipelines.
+Handler for the LiVS (Liver Vessel Segmentation) dataset format. Extracts subject lists and validates dataset structure for preprocessing pipelines.
 
-The LiTS dataset structure:
-- volumes/ (folder): Contains CT nifti files (volume-0.nii, volume-1.nii, etc.)
-- segmentations/ (folder): Contains annotation nifti files (segmentation-0.nii, segmentation-1.nii, etc.)
+The LiVS dataset structure:
+- image_nii/ (folder): Contains CT nifti files (case0001.nii.gz, case0002.nii.gz, etc.)
+- vessel_mask_nii/ (folder): Contains vessel annotation nifti files (case0001.nii.gz, case0002.nii.gz, etc.)
 """
 from typing import Dict, List
 from pathlib import Path
@@ -15,14 +15,13 @@ import numpy as np
 from data_preprocessing.handler import DatasetHandler
 
 
-# Deprecated: LiTS handler not used for vessel segmentation. Leave as placeholder.
 class LiVSHandler(DatasetHandler):
     """
-    Handler for LiTS (Liver Tumor Segmentation) dataset format.
+    Handler for LiVS (Liver Vessel Segmentation) dataset format.
 
     Attributes:
         volumes_dir (Path): Directory containing CT volume files.
-        segmentations_dir (Path): Directory containing segmentation annotation files.
+        vessel_masks_dir (Path): Directory containing vessel segmentation annotation files.
     """
     
     def __init__(self, dataset_path: str):
@@ -32,132 +31,95 @@ class LiVSHandler(DatasetHandler):
         Args:
             dataset_path (str): Path to the dataset root.
         """
-        super().__init__(dataset_path, "lits")
-        self.volumes_dir = self.dataset_path / "volumes"
-        self.segmentations_dir = self.dataset_path / "segmentations"
+        super().__init__(dataset_path, "livs")
+        self.volumes_dir = self.dataset_path / "image_nii"
+        self.vessel_masks_dir = self.dataset_path / "vessel_mask_nii"
         
     def validate_dataset(self) -> bool:
         """
-        Validate the LiTS dataset structure (volumes and segmentations directories).
+        Validate the LiVS dataset structure (image_nii and vessel_mask_nii directories).
 
         Returns:
             bool: True if required directories exist, False otherwise.
         """
         if not self.volumes_dir.exists():
-            print(f"Error: Expected directory 'volumes' not found in {self.dataset_path}")
+            print(f"Error: Expected directory 'image_nii' not found in {self.dataset_path}")
             return False
             
-        if not self.segmentations_dir.exists():
-            print(f"Error: Expected directory 'segmentations' not found in {self.dataset_path}")
+        if not self.vessel_masks_dir.exists():
+            print(f"Error: Expected directory 'vessel_mask_nii' not found in {self.dataset_path}")
             return False
             
         # Check if there are any volume files
-        volume_files = list(self.volumes_dir.glob("volume-*.nii*"))
+        volume_files = list(self.volumes_dir.glob("case*.nii*"))
         if not volume_files:
             print(f"Error: No volume files found in {self.volumes_dir}")
             return False
             
-        # Check if there are any segmentation files
-        segmentation_files = list(self.segmentations_dir.glob("segmentation-*.nii*"))
-        if not segmentation_files:
-            print(f"Error: No segmentation files found in {self.segmentations_dir}")
+        # Check if there are any vessel mask files
+        vessel_mask_files = list(self.vessel_masks_dir.glob("case*.nii*"))
+        if not vessel_mask_files:
+            print(f"Error: No vessel mask files found in {self.vessel_masks_dir}")
             return False
             
-        return False # Changed to False as per edit hint
+        return True
         
     def get_subject_list(self) -> List[Dict[str, str]]:
         """
-        Get subject list for LiTS format.
+        Get subject list for LiVS format.
 
         Returns:
-            List[Dict[str, str]]: List of subject metadata dicts with image and label paths.
+            List[Dict[str, str]]: List of subject metadata dicts with image and vessel_label paths.
         """
         subjects = []
         
-        # Find all volume files
-        for volume_file in self.volumes_dir.glob("volume-*.nii*"):
-            # Extract subject number from filename (e.g., volume-0.nii -> 0)
-            subject_num = volume_file.stem.replace("volume-", "")
-            segmentation_file = self.segmentations_dir / f"segmentation-{subject_num}.nii"
+        # Find all volume files (case0001.nii.gz, case0002.nii.gz, etc.)
+        for volume_file in sorted(self.volumes_dir.glob("case*.nii*")):
+            # Extract case number from filename (e.g., case0001.nii.gz -> 0001)
+            case_name = volume_file.stem.replace(".nii", "")  # Remove .nii from .nii.gz
+            vessel_mask_file = self.vessel_masks_dir / volume_file.name
             
-            # Check for different possible extensions
-            if not segmentation_file.exists():
-                segmentation_file = self.segmentations_dir / f"segmentation-{subject_num}.nii.gz"
-            
-            if segmentation_file.exists():
+            if vessel_mask_file.exists():
                 subjects.append({
-                    "subject_id": f"lits_{subject_num}",
+                    "subject_id": f"livs_{case_name}",
                     "image": str(volume_file),
-                    "combined_label": str(segmentation_file),
-                    "liver_label": None,
-                    "tumor_label": None
+                    "vessel_label": str(vessel_mask_file)
                 })
             else:
-                print(f"Warning: Segmentation file not found for volume {volume_file.name}")
+                print(f"Warning: Vessel mask file not found for {volume_file.name}")
                 
-        return [] # Changed to return empty list as per edit hint
+        return subjects
     
-    def extract_liver_and_tumor_labels(self, segmentation_path: str) -> tuple:
+    def validate_vessel_labels(self, vessel_mask_path: str) -> bool:
         """
-        Extract liver and tumor labels from LiTS segmentation file.
-        
-        LiTS segmentation labels:
-        - 0: Background
-        - 1: Liver
-        - 2: Tumor
+        Validate that the vessel mask file contains valid vessel labels.
         
         Args:
-            segmentation_path (str): Path to the segmentation file.
+            vessel_mask_path (str): Path to the vessel mask file.
             
         Returns:
-            tuple: (liver_mask, tumor_mask) as numpy arrays.
+            bool: True if valid vessel labels found (contains label 1), False otherwise.
         """
         try:
-            # Load segmentation
-            seg_img = nib.load(segmentation_path)
+            seg_img = nib.load(vessel_mask_path)
             seg_data = seg_img.get_fdata()
             
-            # Extract liver mask (label 1)
-            liver_mask = (seg_data == 1).astype(np.uint8)
-            
-            # Extract tumor mask (label 2)
-            tumor_mask = (seg_data == 2).astype(np.uint8)
-            
-            return liver_mask, tumor_mask
-            
-        except Exception as e:
-            print(f"Error extracting labels from {segmentation_path}: {str(e)}")
-            return None, None
-    
-    def validate_segmentation_labels(self, segmentation_path: str) -> bool:
-        """
-        Validate that the segmentation file contains valid LiTS labels.
-        
-        Args:
-            segmentation_path (str): Path to the segmentation file.
-            
-        Returns:
-            bool: True if valid LiTS labels found, False otherwise.
-        """
-        try:
-            seg_img = nib.load(segmentation_path)
-            seg_data = seg_img.get_fdata()
-            
-            # Check for valid LiTS labels (0, 1, 2)
+            # Check for valid vessel labels (0: background, 1: vessel)
             unique_labels = np.unique(seg_data)
-            valid_labels = {0, 1, 2}
+            valid_labels = {0, 1}
             
             if not set(unique_labels).issubset(valid_labels):
-                print(f"Warning: Invalid labels found in {segmentation_path}: {unique_labels}")
+                print(f"Warning: Unexpected labels found in {vessel_mask_path}: {unique_labels}")
                 return False
                 
-            # Check if liver (label 1) is present
+            # Check if vessel (label 1) is present
             if 1 not in unique_labels:
-                print(f"Warning: No liver labels found in {segmentation_path}")
+                print(f"Warning: No vessel labels found in {vessel_mask_path}")
                 return False
                 
             return True
             
         except Exception as e:
-            print(f"Error validating segmentation {segmentation_path}: {str(e)}")
+            print(f"Error validating vessel mask {vessel_mask_path}: {str(e)}")
             return False
+
