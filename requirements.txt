@@ -1,0 +1,16 @@
+torch
+pytorch-lightning
+torchio
+nibabel
+monai
+numpy
+pandas
+scipy
+scikit-learn
+scikit-image
+matplotlib
+tqdm
+transformers
+timm
+einops
+ml_collections
