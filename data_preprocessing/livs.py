@@ -16,7 +16,7 @@ from data_preprocessing.handler import DatasetHandler
 
 
 # Deprecated: LiTS handler not used for vessel segmentation. Leave as placeholder.
-class LiTSHandler(DatasetHandler):
+class LiVSHandler(DatasetHandler):
     """
     Handler for LiTS (Liver Tumor Segmentation) dataset format.
 
@@ -27,7 +27,7 @@ class LiTSHandler(DatasetHandler):
     
     def __init__(self, dataset_path: str):
         """
-        Initialize the LiTSHandler.
+        Initialize the LiVSHandler.
 
         Args:
             dataset_path (str): Path to the dataset root.

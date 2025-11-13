@@ -20,7 +20,7 @@ from tqdm import tqdm
 from configs.data_preprocessing_config import PreprocessingConfig
 from data_preprocessing.handler import DatasetHandler
 from data_preprocessing.jipmer_handler import JIPMERHandler
-from data_preprocessing.lits_handler import LiTSHandler
+from data_preprocessing.livs import LiVSHandler
 from data_preprocessing.msd_handler import HepaticVesselHandler
 from data_preprocessing.handler import DircadbVesselHandler
 from pipelines.data_preprocessing_pipeline import CTPreprocessingPipeline
